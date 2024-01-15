@@ -15,7 +15,7 @@
     <body class="sb-nav-fixed">
         <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
             <!-- Navbar Brand-->
-            <a class="navbar-brand ps-3">Dashboard</a>
+            <a class="navbar-brand ps-3" href="{% url 'home' %}">Dashboard</a>
             <!-- Sidebar Toggle-->
             <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!"><i class="fas fa-bars"></i></button>
             <!-- Navbar Search-->
@@ -35,10 +35,25 @@
                 <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
                     <div class="sb-sidenav-menu">
                         <div class="nav">
+                            {% if request.user.is_authenticated and not request.user.is_staff %}
                             <a class="nav-link" href="{% url 'list' %}">
                                 <div class="sb-nav-link-icon"><i></i></div>
                                 List Gun
                             </a>
+                            {% endif %}
+
+                            {% if request.user.is_authenticated and request.user.is_staff %}
+                            <a class="nav-link" href="{% url 'list' %}">
+                                <div class="sb-nav-link-icon"><i></i></div>
+                                List Gun
+                            </a>
+
+                            <a class="nav-link" href="{% url 'create-gun' %}">
+                                <div class="sb-nav-link-icon"><i></i></div>
+                                Add Data
+                            </a>
+
+                            {% endif %}
                         </div>
                     </div>
                     <div class="sb-sidenav-footer">
@@ -55,7 +70,6 @@
                         <div class="row"></div>
                             {% block content %}{% endblock %}
                         <div class="row"></div>
-
                     </div>
                 </main>
                 <footer class="py-4 bg-light mt-auto">
