@@ -222,6 +222,12 @@ def make_payment(request, pk):
 
     # Ensure the discounted total price is calculated before rendering the template
     order.discounted_total_price = order.discounted_total_price
+
+    # Calculate the discount percentage
+    if order.total_price != 0:
+        order.discount_percentage = ((order.total_price - order.discounted_total_price) / order.total_price) * 100
+    else:
+        order.discount_percentage = 0  # to avoid division by zero
     
     if request.method == "POST":
         try:
@@ -236,14 +242,19 @@ def make_payment(request, pk):
         if not is_payment_less:
             payment = Payment.objects.create(order=order, amount=amount)
             if order.process_purchase():
-                return redirect('list') 
+                # Redirect to the payment receipt page with the payment ID
+                return redirect('payment_receipt', pk=payment.pk)
             else:
                 return HttpResponse("Insufficient stock.")
         else:
             return HttpResponse("Pembayaran kurang dari total harga")
     else:
-        # Pass the discounted_total_price as part of the context
-        context = {"order": order, "discounted_total_price": order.discounted_total_price}
+        # Pass the discounted_total_price and discount_percentage as part of the context
+        context = {
+            "order": order,
+            "discounted_total_price": order.discounted_total_price,
+            "discount_percentage": order.discount_percentage,
+        }
         return render(request, "user/make-payment.html", context)
 
 
