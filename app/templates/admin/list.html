@@ -15,7 +15,7 @@
                                     <p style="font-size: 13px; font-family: sans-serif;" class="card-text">{{ record.description }}</p>
                                     <p class="card-text"><b>Stock:</b> {{ record.stock }}</p>
                                     <b><p class="card-text text-danger">Rp. {{ record.price }}</p></b>
-                                    <a href="{% url 'record' record.id %}" class="btn btn-primary">Lihat Detail</a>
+                                    <a href="{% url 'record' record.id %}" class="btn btn-primary">Details</a>
 
                                     {% if request.user.is_authenticated and request.user.is_staff %}
                                     <a href="{% url 'update-record' record.id %}" class="btn btn-success">Edit</a>

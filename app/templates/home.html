@@ -19,11 +19,18 @@
             <!-- Sidebar Toggle-->
             <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!"><i class="fas fa-bars"></i></button>
             <!-- Navbar Search-->
-            <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0"></form>
+            <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0" method="get" action="{% url 'list' %}">
+                <div class="input-group">
+                    <input class="form-control" type="search" name="search" placeholder="Search for a weapon" aria-label="Search for a weapon" aria-describedby="btnNavbarSearch" value="{{ request.GET.search }}">
+                    <button class="btn btn-outline-success btn-sm" id="btnNavbarSearch" type="submit"><i class="fas fa-search"></i></button>
+                </div>
+            </form>
             <!-- Navbar-->
             <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-user fa-fw"></i></a>
+                    <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user fa-fw"></i>
+                    </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                         <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
                     </ul>
@@ -40,6 +47,14 @@
                                 <div class="sb-nav-link-icon"><i></i></div>
                                 List Gun
                             </a>
+                            <a class="nav-link" href="{% url 'create-order' %}">
+                                <div class="sb-nav-link-icon"><i></i></div>
+                                Buy Gun
+                            </a>
+                            <a class="nav-link" href="#">
+                                <div class="sb-nav-link-icon"><i></i></div>
+                                Receipts
+                            </a>
                             {% endif %}
 
                             {% if request.user.is_authenticated and request.user.is_staff %}
@@ -47,12 +62,18 @@
                                 <div class="sb-nav-link-icon"><i></i></div>
                                 List Gun
                             </a>
-
                             <a class="nav-link" href="{% url 'create-gun' %}">
                                 <div class="sb-nav-link-icon"><i></i></div>
                                 Add Data
                             </a>
-
+                            <a class="nav-link" href="{% url 'laporan_transaksi' %}">
+                                <div class="sb-nav-link-icon"><i></i></div>
+                                Sales Report
+                            </a>
+                            <a class="nav-link" href="{% url 'tampil-grafik' %}">
+                                <div class="sb-nav-link-icon"><i></i></div>
+                                Graph
+                            </a>
                             {% endif %}
                         </div>
                     </div>

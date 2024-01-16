@@ -1,0 +1,42 @@
+{% extends 'home.html' %}
+
+{% block content %}
+  <div class="container">
+    <h1 class="mt-4">Struk Pembayaran</h1>
+    
+    <table class="table table-bordered">
+      <tr>
+        <th>Weapon</th>
+        <td>{{ payment.order.gun.name }}</td>
+      </tr>
+      <tr>
+        <th>Amount</th>
+        <td>{{ payment.order.quantity }}</td>
+      </tr>
+      <tr>
+        <th>Total Price</th>
+        <td>{{ payment.order.total_price }}</td>
+      </tr>
+      <tr>
+        <th>Payment Amount</th>
+        <td>{{ payment.amount }}</td>
+      </tr>
+      
+      {% if payment.amount > payment.order.total_price %}
+        {% load mathfilters %}
+        <tr>
+          <th>Change</th>
+          <td>{{ payment.amount|sub:payment.order.total_price }}</td>
+        </tr>
+      {% endif %}
+    </table>
+
+    <div class="alert {% if is_payment_less %}alert-danger{% else %}alert-success{% endif %}" role="alert">
+      {% if is_payment_less %}
+        <strong>Pembayaran anda kurang!</strong> Mohon lakukan pembayaran sesuai dengan total harga.
+      {% else %}
+        <strong>Pembayaran anda berhasil!</strong> Terima kasih atas pembayarannya.
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

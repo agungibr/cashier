@@ -1,15 +1,20 @@
 from django.shortcuts import render, redirect, reverse
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.contrib.auth import authenticate, logout, login
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.contrib.auth import logout as auth_logout
+from decimal import Decimal, InvalidOperation
+
+import matplotlib.pyplot as plt
+import io
 
 from .models import Gun, Order, Payment
-from .forms import CreateGunForm, UpdateGunForm
+from .forms import CreateGunForm, UpdateGunForm, OrderForm
 
 def main(request):
      return render(request, 'main.html')
@@ -65,9 +70,15 @@ def is_not_staff(user):
 # - List
 @login_required(login_url='login')
 def list(request):
-    my_records = Gun.objects.all()
-    context = {'records': my_records}
-    return render(request, 'admin/list.html', context=context)
+    guns = Gun.objects.all()
+
+    # Handle search query
+    search_query = request.GET.get('search')
+    if search_query:
+        guns = guns.filter(name__icontains=search_query)
+
+    context = {'records': guns, 'search_query': search_query}
+    return render(request, 'admin/list.html', context)
 
 
 # - Create a record 
@@ -120,9 +131,61 @@ def delete_record(request, pk):
     return redirect('home')
 
 
-# - Order
+# - laporan
 @login_required(login_url='login')
 @user_passes_test(is_staff, login_url='login')
+def laporan_transaksi(request):
+    total_transactions = Order.objects.count()
+
+    # Calculate total revenue
+    total_revenue = Payment.objects.aggregate(Sum('amount'))['amount__sum']
+
+    # Get best-selling products with total quantity and total revenue
+    best_sellers = Order.objects.values('gun__name').annotate(
+        total_quantity=Sum('quantity'),
+        total_revenue=Sum(ExpressionWrapper(F('quantity') * F('gun__price'), output_field=DecimalField()))
+    ).order_by('-total_quantity')[:5]
+
+    context = {
+        'total_transactions': total_transactions,
+        'total_revenue': total_revenue,
+        'best_sellers': best_sellers,
+    }
+    return render(request, "admin/laporan_penjualan.html", context)
+
+# -grafik
+@login_required(login_url='login')
+@user_passes_test(is_staff, login_url='login')
+def tampilGrafik(request):
+    import pandas as pd
+
+    orders = Order.objects.all()
+    data = []
+    for order in orders:
+        data.append({"gun": order.gun.name, "total_purchase": order.quantity})
+    
+    df = pd.DataFrame(data)
+    df_group = df.groupby("gun").sum().reset_index()
+    
+    df_group.plot(kind='bar', x='gun', y='total_purchase')
+    plt.xlabel("Gun")
+    plt.ylabel("Total Items Sold")
+    plt.title("Total Number of Items Sold by Gun")
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+
+    response = HttpResponse(buf.read(), content_type='image/png')
+    plt.close()
+    return response
+
+
+#USER
+
+#order
+@login_required(login_url='login')
+@user_passes_test(is_not_staff, login_url='login')
 def create_order(request):
     if request.method == "POST":
         gun_id = request.POST["gun"]
@@ -136,48 +199,61 @@ def create_order(request):
         return redirect("order_detail", pk=order.pk)
     else:
         gun_list = Gun.objects.all()
-        return render(request, "admin/make-order.html", {"gun_list": gun_list})
+        return render(request, "user/order.html", {"gun_list": gun_list})
+    
 
-
-# - detail
 @login_required(login_url='login')
-@user_passes_test(is_staff, login_url='login')
+@user_passes_test(is_not_staff, login_url='login')
 def order_detail(request, pk):
     order = Order.objects.get(pk=pk)
-    return render(request, "admin/order_detail.html", {"order": order})
+    # Calculate the discount percentage
+    if order.total_price != 0:
+        order.discount_percentage = ((order.total_price - order.discounted_total_price) / order.total_price) * 100
+    else:
+        order.discount_percentage = 0  # to avoid division by zero
+
+    return render(request, "user/order_detail.html", {"order": order})
 
 
-# - payment
 @login_required(login_url='login')
-@user_passes_test(is_staff, login_url='login')
+@user_passes_test(is_not_staff, login_url='login')
 def make_payment(request, pk):
     order = Order.objects.get(pk=pk)
+
+    # Ensure the discounted total price is calculated before rendering the template
+    order.discounted_total_price = order.discounted_total_price
+    
     if request.method == "POST":
-        amount = request.POST["amount"]
+        try:
+            amount = Decimal(request.POST["amount"])
+            if amount < 0:
+                raise InvalidOperation("Amount cannot be negative.")
+        except InvalidOperation:
+            return HttpResponse("Invalid amount. Please enter a valid non-negative decimal.")
+        
         is_payment_less = order.is_payment_less()
-        if is_payment_less == False:
+        
+        if not is_payment_less:
             payment = Payment.objects.create(order=order, amount=amount)
-            return redirect("dashboard", pk=payment.pk)
+            if order.process_purchase():
+                return redirect('list') 
+            else:
+                return HttpResponse("Insufficient stock.")
         else:
             return HttpResponse("Pembayaran kurang dari total harga")
     else:
-        return render(request, "home/make-payment.html", {"order": order})
+        # Pass the discounted_total_price as part of the context
+        context = {"order": order, "discounted_total_price": order.discounted_total_price}
+        return render(request, "user/make-payment.html", context)
 
 
-# - laporan
+
+
 @login_required(login_url='login')
-@user_passes_test(is_staff, login_url='login')
-def laporan_transaksi(request):
-    payment = Payment.objects.all()
-    order = Order.objects.all()
-    context = {"payment": payment, "order": order}
-    return render(request, "home/laporan_transaksi.html", context)
-
-
-# #USER
-# @login_required(login_url='login')
-# @user_passes_test(is_not_staff, login_url='login')
-# def list(request):
-#     guns = Gun.objects.all()
-#     context = {'guns': guns}
-#     return render(request, 'list.html', context)
+@user_passes_test(is_not_staff, login_url='login')
+def payment_receipt(request, pk):
+    payment = Payment.objects.get(pk=pk)
+    order = Order.objects.get(pk=payment.order.pk)
+    is_payment_less = order.is_payment_less()
+    context = {"payment": payment, "order": order, "is_payment_less": is_payment_less}
+    return render(request, "user/payment_receipt.html", context)

@@ -27,10 +27,16 @@ urlpatterns = [
     path('home/create-gun', user_passes_test(is_staff)(views.create_record), name="create-gun"),
     path('home/update-record/<int:pk>', user_passes_test(is_staff)(views.update_record), name='update-record'),
     path('home/delete-record/<int:pk>', user_passes_test(is_staff)(views.delete_record), name="delete-record"),
-     path('make-order', user_passes_test(is_staff)(views.create_order), name='make-order'),
-    path('order_detail/<int:pk>/', user_passes_test(is_staff)(views.order_detail), name='order_detail'),
-    path('make-payment/<int:pk>/', user_passes_test(is_staff)(views.make_payment), name='make-payment'),
+    path('tampil-grafik/', user_passes_test(is_staff)(views.tampilGrafik), name="tampil-grafik"),
      path('laporan_transaksi', user_passes_test(is_staff)(views.laporan_transaksi), name='laporan_transaksi'),
+     
+     
+    #crud user
+    path('create-order/',user_passes_test(is_not_staff)(views.create_order), name='create-order'),
+    path('order_detail/<int:pk>/', user_passes_test(is_not_staff)(views.order_detail), name='order_detail'),
+    path('make-payment/<int:pk>/', user_passes_test(is_not_staff)(views.make_payment), name='make-payment'),
+
+    path('payment_receipt/<int:pk>/', user_passes_test(is_not_staff)(views.payment_receipt), name='payment_receipt'),
 ]
 
 if settings.DEBUG:
